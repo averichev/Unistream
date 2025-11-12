@@ -1,121 +1,113 @@
-# Тестовое задание T4 (C#)
+# App (.NET 8) Clean Architecture Template
 
----
+Этот репозиторий содержит минимальный каркас многоуровневого приложения на .NET 8, демонстрирующий полный путь запроса от Web API до базы данных SQL Server через доменный слой. Проект предназначен как основа для CRUD-сервисов и включает готовую инфраструктуру для локального запуска и запуска в Docker.
 
-## Задание
+## Структура решений
 
-Дан интерфейс, описывающий финансовую транзакцию:
-
-```csharp
-public interface ITransaction 
-{ 
-    Guid Id { get; } 
-    Guid ClientId { get; } 
-    DateTime DateTime { get; } 
-    decimal Amount { get; } 
-}
+```
+App.sln
+├── src
+│   ├── App.Domain    # Доменная модель, ошибки и сервисы
+│   ├── App.Data      # Работа с EF Core и реализация репозиториев
+│   └── App.WebApi    # ASP.NET Core Web API, DI, контроллеры, логирование
+└── tests
+    ├── App.Domain.Tests        # Unit-тесты доменного слоя
+    └── App.IntegrationTests    # Интеграционный CRUD сценарий
 ```
 
-Создайте реализации этого интерфейса:
+## Основные возможности
 
-- `CreditTransaction` — зачисление средств клиенту
-- `DebitTransaction` — списание средств у клиента
+- **Entity:** `Item { Id, Name, Price, CreatedAt }`.
+- **Бизнес-правила:** проверки имени и цены, защита от дубликатов.
+- **API:** CRUD-эндпойнты `/api/v1/items` + `/health`.
+- **Инфраструктура:** EF Core (SQL Server), миграции, автоматическое применение миграций при старте.
+- **Валидация:** FluentValidation на уровне DTO + доменная валидация.
+- **Логирование:** Serilog (консоль + rolling-файлы).
+- **Health Checks:** проверка состояния БД.
+- **Тесты:** 5 unit-кейсов на доменную валидацию и интеграционный CRUD-тест на SQLite in-memory.
 
-Необходимо написать **Web API**, которое позволяет:
+## Предварительные требования
 
-1. Зачислять средства клиенту
-2. Списывать средства клиента
-3. Отменять указанную транзакцию
-4. Получать актуальный баланс клиента
+- .NET SDK 8.0+
+- Docker и Docker Compose (для контейнерного запуска)
+- SQL Server (локально или в контейнере) — при локальном запуске можно использовать Docker
 
----
+## Конфигурация
 
-## Эндпоинты
+Основная строка подключения находится в `src/App.WebApi/appsettings.json` и может быть переопределена переменной окружения `ConnectionStrings__Default`.
 
-### `POST /credit`
+Пример `.env` для Docker:
 
-**Request:**
-
-```json
-{
-    "id": "8f0452b2-867b-4ef8-9a9d-3c9c03d9afdf",
-    "clientId": "cfaa0d3f-7fea-4423-9f69-ebff826e2f89",
-    "dateTime": "2019-04-02T13:10:20.0263632+03:00",
-    "amount": 23.05
-}
+```
+SA_PASSWORD=Your_password123
+API_PORT=8080
+MSSQL_PORT=1433
+ASPNETCORE_ENVIRONMENT=Production
+ConnectionStrings__Default=Server=mssql,1433;Database=AppDb;User Id=sa;Password=Your_password123;TrustServerCertificate=True;
 ```
 
-**Response 200 OK:**
+Скопируйте файл `.env.example` в `.env` и при необходимости измените значения.
 
-```json
-{
-    "insertDateTime": "2024-10-25T12:03:34+05:00",
-    "clientBalance": 23.05
-}
+## Локальный запуск
+
+```bash
+dotnet restore
+dotnet ef database update --project src/App.Data --startup-project src/App.WebApi
+dotnet run --project src/App.WebApi
 ```
 
----
+После запуска API доступно по адресу `http://localhost:5000` (порт зависит от настроек `ASPNETCORE_URLS`).
 
-### `POST /debit`
+### Примеры запросов
 
-**Request:**
+```bash
+# Создать элемент
+curl -X POST http://localhost:5000/api/v1/items \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Notebook","price":199.99}'
 
-```json
-{
-    "id": "05eb235c-4955-4c16-bcdd-34e8178228de",
-    "clientId": "cfaa0d3f-7fea-4423-9f69-ebff826e2f89",
-    "dateTime": "2019-04-02T13:10:25.0263632+03:00",
-    "amount": 23.05
-}
+# Получить элемент
+curl http://localhost:5000/api/v1/items/{id}
+
+# Обновить элемент
+curl -X PUT http://localhost:5000/api/v1/items/{id} \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Notebook 2","price":249.99}'
+
+# Удалить элемент
+curl -X DELETE http://localhost:5000/api/v1/items/{id}
+
+# Health check
+curl http://localhost:5000/health
 ```
 
-**Response 200 OK:**
+## Запуск в Docker
 
-```json
-{
-    "insertDateTime": "2024-10-25T12:03:34+05:00",
-    "clientBalance": 0
-}
+```bash
+cp .env.example .env
+# при необходимости обновите пароли и порты
+docker compose up --build
 ```
 
----
+Docker Compose поднимает два сервиса:
 
-### `POST /revert?id=05eb235c-4955-4c16-bcdd-34e8178228de`
+- `mssql` — SQL Server 2022 с healthcheck.
+- `api` — Web API, стартует после готовности БД и автоматически применяет миграции.
 
-**Response 200 OK:**
+API будет доступно по адресу `http://localhost:${API_PORT}`.
 
-```json
-{
-    "revertDateTime": "2024-10-25T12:03:34+05:00",
-    "clientBalance": 23.05
-}
+## Тестирование
+
+```bash
+dotnet test
 ```
 
----
+Тесты покрывают доменную валидацию и полный CRUD-сценарий через HTTP.
 
-### `GET /balance?id=cfaa0d3f-7fea-4423-9f69-ebff826e2f89`
+## Слои и зависимости
 
-**Response 200 OK:**
+- `App.WebApi` зависит только от `App.Domain` (через сервисы) и `App.Data` (через DI).
+- `App.Data` реализует `IItemRepository` и не знает о Web API.
+- `App.Domain` содержит чистые модели и бизнес-логику без привязки к инфраструктуре.
 
-```json
-{
-    "balanceDateTime": "2024-10-25T12:03:34+05:00",
-    "clientBalance": 23.05
-}
-```
-
----
-
-## Требования
-
-- Методы **POST должны быть идемпотентными** — при повторной отправке запроса с тем же `Id` должен возвращаться тот же результат, что и ранее.
-- Реализовать **валидацию**:
-    - сумма (`amount`) всегда положительная;
-    - дата не может быть в будущем;
-    - нельзя списывать больше, чем есть на балансе.
-- Обработка ошибок — в соответствии с **RFC 9457**.
-- **Хранение данных:** в реляционной СУБД (предпочтительно **PostgreSQL** или **SQL Server**).
-- Сервис **не должен зависеть от одного инстанса** — допускается запуск нескольких экземпляров одновременно.
-- **Логирование** — на усмотрение разработчика.
-- **Дополнительная функциональность** — по желанию.
-- Приветствуется использование **docker-compose** для быстрого запуска.  
+Такой подход упрощает замену инфраструктуры, модульное тестирование и поддержку проекта.

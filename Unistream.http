@@ -1,6 +1,0 @@
-@Unistream_HostAddress = http://localhost:5038
-
-GET {{Unistream_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

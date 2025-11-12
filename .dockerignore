@@ -1,0 +1,15 @@
+bin
+obj
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/*.userprefs
+*.pdb
+*.log
+Logs
+.env
+.git
+.gitignore
+.vs
+.idea
