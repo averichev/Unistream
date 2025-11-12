@@ -42,7 +42,7 @@ App.sln
 SA_PASSWORD=Your_password123
 API_PORT=8080
 MSSQL_PORT=1433
-ASPNETCORE_ENVIRONMENT=Production
+ASPNETCORE_ENVIRONMENT=Docker
 ConnectionStrings__Default=Server=mssql,1433;Database=AppDb;User Id=sa;Password=Your_password123;TrustServerCertificate=True;
 ```
 

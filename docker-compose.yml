@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: app-mssql
     environment:
-      SA_PASSWORD: ${SA_PASSWORD}
+      SA_PASSWORD: ${SA_PASSWORD:-Your_password123}
       ACCEPT_EULA: "Y"
     ports:
       - "${MSSQL_PORT:-1433}:1433"
@@ -24,8 +24,8 @@ services:
       mssql:
         condition: service_healthy
     environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      ConnectionStrings__Default: ${ConnectionStrings__Default}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Docker}
+      ConnectionStrings__Default: ${ConnectionStrings__Default:-Server=mssql,1433;Database=AppDb;User Id=sa;Password=Your_password123;TrustServerCertificate=True;}
     ports:
       - "${API_PORT:-8080}:8080"
     healthcheck:
