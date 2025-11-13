@@ -5,6 +5,7 @@ using App.WebApi.Validation;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Serilog;
 
 try
@@ -25,6 +26,18 @@ try
     builder.Services.AddValidatorsFromAssemblyContaining<CreateItemRequestValidator>();
     builder.Services.AddProblemDetails();
 
+    // Configure Swagger/OpenAPI
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo 
+        { 
+            Title = "App API", 
+            Version = "v1",
+            Description = "Clean Architecture API with CRUD operations for Items"
+        });
+    });
+
     var connectionString = builder.Configuration.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Connection string 'Default' was not found.");
 
@@ -38,6 +51,17 @@ try
     var app = builder.Build();
 
     await app.ApplyMigrationsAsync().ConfigureAwait(false);
+
+    // Configure Swagger middleware
+    if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "App API v1");
+            c.RoutePrefix = "swagger";
+        });
+    }
 
     app.UseSerilogRequestLogging();
     app.UseGlobalExceptionHandling();

@@ -19,11 +19,12 @@ App.sln
 
 - **Entity:** `Item { Id, Name, Price, CreatedAt }`.
 - **Бизнес-правила:** проверки имени и цены, защита от дубликатов.
-- **API:** CRUD-эндпойнты `/api/v1/items` + `/health`.
+- **API:** CRUD-эндпойнты `/api/v1/items` + `/health` + Swagger UI.
 - **Инфраструктура:** EF Core (SQL Server), миграции, автоматическое применение миграций при старте.
 - **Валидация:** FluentValidation на уровне DTO + доменная валидация.
 - **Логирование:** Serilog (консоль + rolling-файлы).
 - **Health Checks:** проверка состояния БД.
+- **Swagger:** автоматическая документация API и интерактивный интерфейс для тестирования.
 - **Тесты:** 5 unit-кейсов на доменную валидацию и интеграционный CRUD-тест на SQLite in-memory.
 
 ## Предварительные требования
@@ -57,6 +58,14 @@ dotnet run --project src/App.WebApi
 ```
 
 После запуска API доступно по адресу `http://localhost:5000` (порт зависит от настроек `ASPNETCORE_URLS`).
+
+### Swagger UI
+
+**Локальный запуск:**
+- **Swagger UI:** http://localhost:5000/swagger
+- **OpenAPI спецификация:** http://localhost:5000/swagger/v1/swagger.json
+
+Swagger UI предоставляет интерактивный интерфейс для тестирования всех API эндпойнтов с автоматической документацией, валидацией параметров и примерами запросов.
 
 ### Примеры запросов
 
@@ -95,6 +104,12 @@ Docker Compose поднимает два сервиса:
 - `api` — Web API, стартует после готовности БД и автоматически применяет миграции.
 
 API будет доступно по адресу `http://localhost:${API_PORT}`.
+
+### Swagger UI (Docker)
+
+**Docker запуск:**
+- **Swagger UI:** http://localhost:8080/swagger
+- **OpenAPI спецификация:** http://localhost:8080/swagger/v1/swagger.json
 
 ## Тестирование
 
